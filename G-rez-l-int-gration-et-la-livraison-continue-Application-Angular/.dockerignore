@@ -1,0 +1,11 @@
+.angular
+.git
+.gitignore
+.vscode
+dist
+k8s
+node_modules
+npm-debug.log
+README.md
+Thumbs.db
+.DS_Store

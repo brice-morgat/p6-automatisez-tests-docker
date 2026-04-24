@@ -1,0 +1,14 @@
+{
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Spring Boot-JavaBasicAppApplication<G-rez-l-int-gration-et-la-livraison-continue-Application-Java>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "fr.oc.devops.backend.JavaBasicAppApplication",
+            "projectName": "G-rez-l-int-gration-et-la-livraison-continue-Application-Java",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env"
+        }
+    ]
+}

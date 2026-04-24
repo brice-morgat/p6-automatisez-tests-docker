@@ -1,0 +1,11 @@
+.gradle
+.idea
+.git
+.gitignore
+build
+db
+k8s
+src/main/java-generated
+gradle.properties
+README.md
+*.log

@@ -1,0 +1,38 @@
+services:
+  db:
+    image: postgres:13
+    environment:
+      POSTGRES_DB: workshopsdb
+      POSTGRES_USER: workshops_user
+      POSTGRES_PASSWORD: oc2024
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U workshops_user -d workshopsdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/workshopsdb
+      SPRING_DATASOURCE_USERNAME: workshops_user
+      SPRING_DATASOURCE_PASSWORD: oc2024
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8080/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+
+volumes:
+  postgres_data:
