@@ -64,7 +64,11 @@ run_gradle_tests() {
 	local code=0
 
 	echo "Projet Java / Gradle detecte"
+	if [[ -n "${JAVA_HOME:-}" ]]; then
+		export PATH="$JAVA_HOME/bin:$PATH"
+	fi
 	command -v java >/dev/null || { echo "java est introuvable"; return 1; }
+	java -version
 
 	rm -rf build/test-results build/reports/tests
 

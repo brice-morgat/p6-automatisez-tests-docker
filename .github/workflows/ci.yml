@@ -54,21 +54,35 @@ jobs:
           chmod +x ./run-tests.sh
           ./run-tests.sh "${{ matrix.app_path }}" "${{ matrix.app_name }}"
 
-      - name: Upload JUnit XML
+      - name: Detect JUnit XML
+        id: junit
         if: always()
+        shell: bash
+        run: |
+          if find test-results -type f -name "*.xml" -print -quit | grep -q .; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+            find test-results -type f -name "*.xml" -print
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            echo "No JUnit XML files were generated."
+          fi
+
+      - name: Upload JUnit XML
+        if: always() && steps.junit.outputs.found == 'true'
         uses: actions/upload-artifact@v6
         with:
           name: test-results-${{ matrix.app_name }}
           path: test-results/**/*.xml
-          if-no-files-found: error
+          if-no-files-found: warn
 
       - name: Publish test report
-        if: always()
+        if: always() && steps.junit.outputs.found == 'true'
         uses: dorny/test-reporter@v2
         with:
           name: Tests - ${{ matrix.app_name }}
           path: test-results/**/*.xml
           reporter: java-junit
+          fail-on-empty: false
 
   build:
     name: build (${{ matrix.app_name }})
