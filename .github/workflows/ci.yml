@@ -5,11 +5,14 @@ on:
     branches:
       - "**"
   pull_request:
+  workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   checks: write
+  issues: write
   packages: write
+  pull-requests: write
 
 jobs:
   test:
@@ -119,7 +122,7 @@ jobs:
         uses: docker/setup-buildx-action@v4
 
       - name: Log in to GHCR
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         uses: docker/login-action@v4
         with:
           registry: ghcr.io
@@ -131,9 +134,57 @@ jobs:
         with:
           context: ${{ matrix.app_path }}
           file: ${{ matrix.app_path }}/Dockerfile
-          push: ${{ github.event_name == 'push' }}
+          push: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
           tags: |
             ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.branch_sha }}
             ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.short_sha }}
           cache-from: type=gha,scope=${{ matrix.app_name }}
           cache-to: type=gha,mode=max,scope=${{ matrix.app_name }}
+
+  release:
+    name: release (${{ matrix.app_name }})
+    runs-on: ubuntu-latest
+    needs: [test, build]
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        include:
+          - app_name: angular
+            release_config: release.angular.config.cjs
+          - app_name: java
+            release_config: release.java.config.cjs
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install release tools
+        run: npm ci
+
+      - name: Run semantic-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git checkout main
+          git pull --ff-only origin main
+          npx semantic-release --extends ./${{ matrix.release_config }}
