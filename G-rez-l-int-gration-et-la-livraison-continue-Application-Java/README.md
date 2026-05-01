@@ -53,7 +53,9 @@ docker compose up -d
 You can configure the application with these environment variables
 
 - SPRING_DATASOURCE_URL: JDBC URI for DB access (ex. jdbc:postgresql://db:5432/mydatabase)
+
 - SPRING_DATASOURCE_USERNAME: Database user name used by the application
+
 - SPRING_DATASOURCE_PASSWORD: Database user password used by the application
 
 ## Testing
