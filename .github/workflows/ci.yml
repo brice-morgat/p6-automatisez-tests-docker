@@ -81,13 +81,13 @@ jobs:
 
           if [[ "$angular" == "true" ]]; then
             test_entries='{"app_name":"angular","app_path":"G-rez-l-int-gration-et-la-livraison-continue-Application-Angular","runtime":"node","node_version":"20"}'
-            build_entries='{"app_name":"angular","app_path":"G-rez-l-int-gration-et-la-livraison-continue-Application-Angular","image_name":"application-angular"}'
+            build_entries='{"app_name":"angular","app_path":"G-rez-l-int-gration-et-la-livraison-continue-Application-Angular","image_name":"application-angular","runtime":"node","node_version":"20"}'
             release_entries='{"app_name":"angular","release_config":"release.angular.config.cjs"}'
           fi
 
           if [[ "$java" == "true" ]]; then
             test_entry='{"app_name":"java","app_path":"G-rez-l-int-gration-et-la-livraison-continue-Application-Java","runtime":"java","java_version":"21"}'
-            build_entry='{"app_name":"java","app_path":"G-rez-l-int-gration-et-la-livraison-continue-Application-Java","image_name":"application-java"}'
+            build_entry='{"app_name":"java","app_path":"G-rez-l-int-gration-et-la-livraison-continue-Application-Java","image_name":"application-java","runtime":"java","java_version":"21"}'
             release_entry='{"app_name":"java","release_config":"release.java.config.cjs"}'
 
             test_entries="${test_entries:+$test_entries,}$test_entry"
@@ -210,7 +210,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Construire et publier l'image
+      - name: Build & Push (${{ matrix.app_name }})
         uses: docker/build-push-action@v7
         with:
           context: ${{ matrix.app_path }}
@@ -224,6 +224,32 @@ jobs:
             ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.short_sha }}
           cache-from: type=gha,scope=${{ matrix.app_name }}
           cache-to: type=gha,mode=max,scope=${{ matrix.app_name }}
+
+      - name: Extraire l'artefact applicatif depuis Docker
+        id: app_artifact
+        shell: bash
+        run: |
+          tag_local="local-artifact-${{ matrix.app_name }}:${GITHUB_SHA}"
+          docker build --target builder -t "$tag_local" "${{ matrix.app_path }}"
+          container_id="$(docker create "$tag_local")"
+          mkdir -p artifact-output
+          if [[ "${{ matrix.app_name }}" == "angular" ]]; then
+            docker cp "$container_id:/app/dist/olympic-games-starter/browser" "artifact-output/dist"
+            echo "artifact_name=dist-${{ matrix.app_name }}" >> "$GITHUB_OUTPUT"
+            echo "artifact_path=artifact-output/dist" >> "$GITHUB_OUTPUT"
+          else
+            docker cp "$container_id:/app/build/libs/." "artifact-output/"
+            echo "artifact_name=jar-${{ matrix.app_name }}" >> "$GITHUB_OUTPUT"
+            echo "artifact_path=artifact-output/*.jar" >> "$GITHUB_OUTPUT"
+          fi
+          docker rm -f "$container_id"
+
+      - name: Publier l'artefact applicatif
+        uses: actions/upload-artifact@v6
+        with:
+          name: ${{ steps.app_artifact.outputs.artifact_name }}
+          path: ${{ steps.app_artifact.outputs.artifact_path }}
+          if-no-files-found: error
 
   release:
     name: Release (${{ matrix.app_name }})
