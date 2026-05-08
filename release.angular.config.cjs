@@ -19,11 +19,7 @@ module.exports = {
           { breaking: true, scope: "angular", release: "major" },
           { type: "feat", scope: "angular", release: "minor" },
           { type: "fix", scope: "angular", release: "patch" },
-          { type: "perf", scope: "angular", release: "patch" },
-          { breaking: true, release: false },
-          { type: "feat", release: false },
-          { type: "fix", release: false },
-          { type: "perf", release: false }
+          { type: "perf", scope: "angular", release: "patch" }
         ]
       }
     ],
